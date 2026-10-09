@@ -1,5 +1,6 @@
 """Neptune Analytics Adapter for Graph Database"""
 
+import asyncio
 import json
 from typing import Any
 from uuid import UUID
@@ -206,7 +207,7 @@ class NeptuneGraphDB(GraphDBInterface):
             if params is None:
                 params = {}
             logger.debug(f"executing na query:\nquery={query}\n")
-            result = self._client.query(query, params)
+            result = await asyncio.to_thread(self._client.query, query, params)
 
             # Convert the result to list format expected by the interface
             if isinstance(result, list):

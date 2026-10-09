@@ -214,7 +214,7 @@ class NeptuneAnalyticsAdapter(NeptuneGraphDB, VectorDBInterface):
             )
 
             try:
-                self._client.query(query_string, params)
+                await asyncio.to_thread(self._client.query, query_string, params)
             except Exception as e:
                 logger.debug(
                     "Ignoring exception in NeptuneAnalyticsAdapter.create_data_points",
@@ -242,7 +242,7 @@ class NeptuneAnalyticsAdapter(NeptuneGraphDB, VectorDBInterface):
         )
 
         try:
-            result = self._client.query(query_string, params)
+            result = await asyncio.to_thread(self._client.query, query_string, params)
             return [
                 ScoredResult(
                     id=(item.get("payload") or {}).get("~id"),
@@ -363,7 +363,7 @@ class NeptuneAnalyticsAdapter(NeptuneGraphDB, VectorDBInterface):
         query_string += f"RETURN {payload_part}, score{embedding_part}"
 
         try:
-            query_response = self._client.query(query_string, params)
+            query_response = await asyncio.to_thread(self._client.query, query_string, params)
             results = []
             for item in query_response:
                 payload_obj = item.get("payload") or {}
@@ -443,7 +443,7 @@ class NeptuneAnalyticsAdapter(NeptuneGraphDB, VectorDBInterface):
             f"DETACH DELETE n"
         )
         try:
-            self._client.query(query_string, params)
+            await asyncio.to_thread(self._client.query, query_string, params)
         except Exception as e:
             logger.debug(
                 "Ignoring exception in NeptuneAnalyticsAdapter.delete_data_points", exc_info=True
@@ -501,7 +501,9 @@ class NeptuneAnalyticsAdapter(NeptuneGraphDB, VectorDBInterface):
         Remove obsolete or unnecessary data from the database.
         """
         # Run actual truncate
-        self._client.query(f"MATCH (n :{self._VECTOR_NODE_LABEL}) DETACH DELETE n")
+        await asyncio.to_thread(
+            self._client.query, f"MATCH (n :{self._VECTOR_NODE_LABEL}) DETACH DELETE n"
+        )
 
     async def is_empty(self) -> bool:
         query = """
@@ -509,7 +511,7 @@ class NeptuneAnalyticsAdapter(NeptuneGraphDB, VectorDBInterface):
         RETURN true
         LIMIT 1;
         """
-        query_result = self._client.query(query)
+        query_result = await asyncio.to_thread(self._client.query, query)
         return len(query_result) == 0
 
     def _na_exception_handler(self, ex, query_string: str):
